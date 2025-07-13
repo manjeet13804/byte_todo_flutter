@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "195091699687",
+    "project_id": "byte-todo",
+    "storage_bucket": "byte-todo.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:195091699687:android:97f83f83cdd01de5468f42",
+        "android_client_info": {
+          "package_name": "com.manjeet13804.byte_todo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCE5jM-LHLyzRDtpV8HPHVzqpPMPyWEfEo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
