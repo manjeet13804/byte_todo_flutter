@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/todo_provider.dart';
 
+// Main screen where users can manage their daily tasks
 class TodoScreen extends ConsumerWidget {
   const TodoScreen({super.key});
+  
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Get the current list of todos from our provider
     final todoList = ref.watch(todoProvider);
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text("My Todos"),
@@ -14,8 +18,10 @@ class TodoScreen extends ConsumerWidget {
       ),
       body: Column(
         children: [
+          // Top section where users can add new todos
           _buildAddTodoSection(ref),
 
+          // Main content area it shows either empty state or todo list
           Expanded(
             child: todoList.isEmpty
                 ? _buildEmptyState()
@@ -26,6 +32,7 @@ class TodoScreen extends ConsumerWidget {
     );
   }
 
+  // Creates the input area where users can type and add new todos
   Widget _buildAddTodoSection(WidgetRef ref) {
     final TextEditingController inputController = TextEditingController();
 
@@ -37,6 +44,7 @@ class TodoScreen extends ConsumerWidget {
       ),
       child: Row(
         children: [
+          // Text field for typing new todos
           Expanded(
             child: TextField(
               controller: inputController,
@@ -48,10 +56,12 @@ class TodoScreen extends ConsumerWidget {
                   vertical: 12,
                 ),
               ),
+              // Allow users to press Enter to add todo
               onSubmitted: (text) => _addTodo(ref, inputController, text),
             ),
           ),
           const SizedBox(width: 12),
+          // Plus button to add the todo
           FloatingActionButton.small(
             onPressed: () =>
                 _addTodo(ref, inputController, inputController.text),
@@ -63,14 +73,17 @@ class TodoScreen extends ConsumerWidget {
     );
   }
 
+  // Handles adding a new todo to the list
   void _addTodo(WidgetRef ref, TextEditingController controller, String text) {
     final trimmedText = text.trim();
+    // Only add if user actually typed something
     if (trimmedText.isNotEmpty) {
       ref.read(todoProvider.notifier).add(trimmedText);
-      controller.clear();
+      controller.clear(); // Clear the input field
     }
   }
 
+  // Shows a friendly message when there are no todos yet
   Widget _buildEmptyState() {
     return Center(
       child: Column(
@@ -96,6 +109,7 @@ class TodoScreen extends ConsumerWidget {
     );
   }
 
+  // Creates a scrollable list of all todos
   Widget _buildTodoList(List<dynamic> todoList, WidgetRef ref) {
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -107,16 +121,19 @@ class TodoScreen extends ConsumerWidget {
     );
   }
 
+  // Creates each individual todo item with checkbox and actions
   Widget _buildTodoItem(BuildContext context, WidgetRef ref, dynamic todo) {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: ListTile(
+        // Checkbox to mark todo as done/undone
         leading: Checkbox(
           value: todo.isDone,
           onChanged: (_) =>
               ref.read(todoProvider.notifier).toggleStatus(todo.id),
           activeColor: Colors.deepPurple,
         ),
+        // Todo text with strikethrough effect when completed
         title: Text(
           todo.title,
           style: TextStyle(
@@ -127,11 +144,13 @@ class TodoScreen extends ConsumerWidget {
             fontSize: 16,
           ),
         ),
+        // Edit and delete buttons
         trailing: _buildActionButtons(context, ref, todo),
       ),
     );
   }
 
+  // Creates the edit and delete buttons for each todo
   Widget _buildActionButtons(
     BuildContext context,
     WidgetRef ref,
@@ -140,11 +159,13 @@ class TodoScreen extends ConsumerWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+        // Edit button
         IconButton(
           icon: const Icon(Icons.edit_outlined),
           onPressed: () => _showEditDialog(context, ref, todo.id, todo.title),
           tooltip: "Edit todo",
         ),
+        // Delete button
         IconButton(
           icon: const Icon(Icons.delete_outline),
           onPressed: () => _showDeleteConfirmation(context, ref, todo),
@@ -154,6 +175,7 @@ class TodoScreen extends ConsumerWidget {
     );
   }
 
+  // Shows a dialog where users can edit their todo text
   void _showEditDialog(
     BuildContext context,
     WidgetRef ref,
@@ -171,16 +193,19 @@ class TodoScreen extends ConsumerWidget {
             hintText: "Update your todo",
             border: OutlineInputBorder(),
           ),
-          autofocus: true,
+          autofocus: true, // Automatically focus the text field
         ),
         actions: [
+          // Cancel button
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text("Cancel"),
           ),
+          // Save button
           FilledButton(
             onPressed: () {
               final updatedText = editController.text.trim();
+              // Only save if user entered something
               if (updatedText.isNotEmpty) {
                 ref.read(todoProvider.notifier).updateTitle(id, updatedText);
               }
@@ -193,6 +218,7 @@ class TodoScreen extends ConsumerWidget {
     );
   }
 
+  // Shows a confirmation dialog before deleting a todo
   void _showDeleteConfirmation(
     BuildContext context,
     WidgetRef ref,
@@ -204,10 +230,12 @@ class TodoScreen extends ConsumerWidget {
         title: const Text("Delete Todo"),
         content: Text("Are you sure you want to delete '${todo.title}'?"),
         actions: [
+          // Cancel button
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text("Cancel"),
           ),
+          // Delete button with red color to indicate danger
           FilledButton(
             onPressed: () {
               ref.read(todoProvider.notifier).remove(todo.id);
