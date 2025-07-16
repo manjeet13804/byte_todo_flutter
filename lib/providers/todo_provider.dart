@@ -3,41 +3,24 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../model/todo_model.dart';
 
 // This is the main provider that manages all todo operations in the app
-final todoProvider = StateNotifierProvider<TodoController, List<Todo>>((ref) {
-  return TodoController();
+final todoProvider = StreamProvider<List<Todo>>((ref) {
+  final _collection = FirebaseFirestore.instance.collection('todos');
+  return _collection.snapshots().map((snapshot) {
+    return snapshot.docs.map((doc) {
+      final data = doc.data();
+      data['id'] = doc.id;
+      return Todo.fromMap(data);
+    }).toList();
+  });
 });
 
 // handles all the CRUD operations with Firebase
-class TodoController extends StateNotifier<List<Todo>> {
-  TodoController() : super([]) {
-    // listens to Firebase changes when controller is created
-    _setupRealtimeListener();
-  }
-
+class TodoProvider {
   // Firebase connection setup
   final _firestore = FirebaseFirestore.instance;
   final _collection = FirebaseFirestore.instance.collection('todos');
 
   // Sets up real-time updates so any changes in Firebase instantly appear in the app
-  void _setupRealtimeListener() {
-    _collection.snapshots().listen(
-      (snapshot) {
-        try {
-          // Convert Firebase documents back into Todo objects
-          state = snapshot.docs.map((doc) {
-            final data = doc.data();
-            data['id'] = doc.id; // Add the document ID to our data
-            return Todo.fromMap(data);
-          }).toList();
-        } catch (e) {
-          print('Error fetching todos: $e');
-        }
-      },
-      onError: (error) {
-        print('Error listening to todos: $error');
-      },
-    );
-  }
 
   // Adds a new todo to Firebase and automatically shows in app
   Future<void> add(String title) async {
@@ -69,13 +52,15 @@ class TodoController extends StateNotifier<List<Todo>> {
   // Toggles a todo between done and not done
   Future<void> toggleStatus(String id) async {
     if (id.isEmpty) return; // Safety check
-
+    final todos = await _collection.get().then((snapshot) {
+      return snapshot.docs.map((doc) => Todo.fromMap(doc.data())).toList();
+    });
     try {
       // Find the todo in our current state
-      final todoIndex = state.indexWhere((todo) => todo.id == id);
+      final todoIndex = todos.indexWhere((todo) => todo.id == id);
       if (todoIndex == -1) return; // Todo not found
 
-      final currentTodo = state[todoIndex];
+      final currentTodo = todos[todoIndex];
       final newStatus = !currentTodo.isDone; // Flip the status
 
       // Update Firebase with the new status and timestamp
@@ -103,11 +88,11 @@ class TodoController extends StateNotifier<List<Todo>> {
     }
   }
 
-  // Removes all completed todos at once 
-  Future<void> clearCompleted() async {
+  // Removes all completed todos at once
+  Future<void> clearCompleted(List<Todo> todos) async {
     try {
       // Find all todos that are marked as done
-      final completedTodos = state.where((todo) => todo.isDone).toList();
+      final completedTodos = todos.where((todo) => todo.isDone).toList();
       if (completedTodos.isEmpty) return; // Nothing to clear
 
       // Use batch operation for better performance when deleting multiple items
@@ -122,18 +107,19 @@ class TodoController extends StateNotifier<List<Todo>> {
   }
 
   // Provides stats about todos (total, completed, pending)
-  Map<String, int> get statistics {
-    final total = state.length;
-    final completed = state.where((todo) => todo.isDone).length;
+  static Map<String, int> getStatistics(List<Todo> todos) {
+    final total = todos.length;
+    final completed = todos.where((todo) => todo.isDone).length;
     final pending = total - completed;
 
     return {'total': total, 'completed': completed, 'pending': pending};
   }
 
-  // Searches through todos by title 
-  List<Todo> searchTodos(String query) {
-    if (query.trim().isEmpty) return state; // Return all todos if no search query
-    return state
+  // Searches through todos by title
+  List<Todo> searchTodos(List<Todo> todos, String query) {
+    if (query.trim().isEmpty)
+      return todos; // Return all todos if no search query
+    return todos
         .where((todo) => todo.title.toLowerCase().contains(query.toLowerCase()))
         .toList();
   }

@@ -5,29 +5,33 @@ import '../providers/todo_provider.dart';
 // Main screen where users can manage their daily tasks
 class TodoScreen extends ConsumerWidget {
   const TodoScreen({super.key});
-  
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Get the current list of todos from our provider
     final todoList = ref.watch(todoProvider);
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("My Todos"),
         backgroundColor: Colors.deepPurple.shade100,
       ),
-      body: Column(
-        children: [
-          // Top section where users can add new todos
-          _buildAddTodoSection(ref),
+      body: todoList.when(
+        data: (todoList) => Column(
+          children: [
+            // Top section where users can add new todos
+            _buildAddTodoSection(ref),
 
-          // Main content area it shows either empty state or todo list
-          Expanded(
-            child: todoList.isEmpty
-                ? _buildEmptyState()
-                : _buildTodoList(todoList, ref),
-          ),
-        ],
+            // Main content area it shows either empty state or todo list
+            Expanded(
+              child: todoList.isEmpty
+                  ? _buildEmptyState()
+                  : _buildTodoList(todoList, ref),
+            ),
+          ],
+        ),
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(child: Text("Error loading todos: $e")),
       ),
     );
   }
@@ -74,11 +78,16 @@ class TodoScreen extends ConsumerWidget {
   }
 
   // Handles adding a new todo to the list
-  void _addTodo(WidgetRef ref, TextEditingController controller, String text) {
+  Future<void> _addTodo(
+    WidgetRef ref,
+    TextEditingController controller,
+    String text,
+  ) async {
+    final todoList = TodoProvider();
     final trimmedText = text.trim();
     // Only add if user actually typed something
     if (trimmedText.isNotEmpty) {
-      ref.read(todoProvider.notifier).add(trimmedText);
+      await todoList.add(trimmedText);
       controller.clear(); // Clear the input field
     }
   }
@@ -123,15 +132,15 @@ class TodoScreen extends ConsumerWidget {
 
   // Creates each individual todo item with checkbox and actions
   Widget _buildTodoItem(BuildContext context, WidgetRef ref, dynamic todo) {
+    final todoList = TodoProvider();
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: ListTile(
         // Checkbox to mark todo as done/undone
         leading: Checkbox(
           value: todo.isDone,
-          onChanged: (_) =>
-              ref.read(todoProvider.notifier).toggleStatus(todo.id),
-          activeColor: Colors.deepPurple,
+          onChanged: (_) async => await todoList.toggleStatus(todo.id),
+          activeColor: const Color.fromRGBO(103, 58, 183, 1),
         ),
         // Todo text with strikethrough effect when completed
         title: Text(
@@ -183,6 +192,7 @@ class TodoScreen extends ConsumerWidget {
     String currentTitle,
   ) {
     final editController = TextEditingController(text: currentTitle);
+    final todoList = TodoProvider();
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -203,11 +213,11 @@ class TodoScreen extends ConsumerWidget {
           ),
           // Save button
           FilledButton(
-            onPressed: () {
+            onPressed: () async {
               final updatedText = editController.text.trim();
               // Only save if user entered something
               if (updatedText.isNotEmpty) {
-                ref.read(todoProvider.notifier).updateTitle(id, updatedText);
+                await todoList.updateTitle(id, updatedText);
               }
               Navigator.of(context).pop();
             },
@@ -224,6 +234,7 @@ class TodoScreen extends ConsumerWidget {
     WidgetRef ref,
     dynamic todo,
   ) {
+    final todoList = TodoProvider();
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -237,8 +248,8 @@ class TodoScreen extends ConsumerWidget {
           ),
           // Delete button with red color to indicate danger
           FilledButton(
-            onPressed: () {
-              ref.read(todoProvider.notifier).remove(todo.id);
+            onPressed: () async {
+              await todoList.remove(todo.id);
               Navigator.of(context).pop();
             },
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
