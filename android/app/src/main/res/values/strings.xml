@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+<string name="app_name">Byte Todo</string>
+<string name="facebook_app_id">1321735285985323</string>
+<string name="fb_login_protocol_scheme">fb1321735285985323</string>
+<string name="facebook_client_token">564e5fc911883cb5d650435fb7c66fdded789</string>
+</resources>
