@@ -1,6 +1,11 @@
+import 'package:byte_todo/providers/todo_provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/todo_provider.dart';
+import '../providers/todo_provider.dart' as todo_prov;
+import '../auth/signin_screen.dart' as signin;
+import '../auth/auth_service.dart';
+import '../providers/todo_provider.dart' as todo_prov;
 
 // Main screen where users can manage their daily tasks
 class TodoScreen extends ConsumerWidget {
@@ -36,41 +41,70 @@ class TodoScreen extends ConsumerWidget {
     );
   }
 
-  // Creates the input area where users can type and add new todos
+  // Creates the input area where users can type and add new todos shows logged in user at top and sign out button
   Widget _buildAddTodoSection(WidgetRef ref) {
     final TextEditingController inputController = TextEditingController();
-
+    final authServiceProvider = Provider<AuthService>((ref) => AuthService());
+    final user = ref.watch(signin.emailProvider);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.grey.shade50,
         border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Text field for typing new todos
-          Expanded(
-            child: TextField(
-              controller: inputController,
-              decoration: const InputDecoration(
-                hintText: "What's on your mind?",
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
+          // Display the current user's email at the top and a sign out button
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  // Show the current user's email or 'Guest' if not logged in
+                  "Logged in as: ${user ?? 'Guest'}",
+                  style: TextStyle(fontSize: 16, color: Colors.grey.shade700),
                 ),
               ),
-              // Allow users to press Enter to add todo
-              onSubmitted: (text) => _addTodo(ref, inputController, text),
-            ),
+              IconButton(
+                icon: const Icon(Icons.logout),
+                onPressed: () async {
+                  await ref.read(authServiceProvider).signout();
+                  Navigator.pushReplacement(
+                    ref.context,
+                    MaterialPageRoute(
+                      builder: (context) => const signin.SignInScreen(),
+                    ),
+                  );
+                },
+                tooltip: "Sign out",
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          // Plus button to add the todo
-          FloatingActionButton.small(
-            onPressed: () =>
-                _addTodo(ref, inputController, inputController.text),
-            tooltip: "Add todo",
-            child: const Icon(Icons.add),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: inputController,
+                  decoration: const InputDecoration(
+                    hintText: "What's on your mind?",
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                  ),
+                  onSubmitted: (text) => _addTodo(ref, inputController, text),
+                ),
+              ),
+              const SizedBox(width: 12),
+              FloatingActionButton.small(
+                onPressed: () =>
+                    _addTodo(ref, inputController, inputController.text),
+                tooltip: "Add todo",
+                child: const Icon(Icons.add),
+              ),
+            ],
           ),
         ],
       ),

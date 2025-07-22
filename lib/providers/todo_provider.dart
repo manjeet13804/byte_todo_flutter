@@ -1,6 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../model/todo_model.dart';
+import 'dart:developer';
+import '../auth/auth_service.dart';
+
+// Provider to hold the current user's email
+final emailProvider = StateProvider<String>((ref) => '');
 
 // This is the main provider that manages all todo operations in the app
 final todoProvider = StreamProvider<List<Todo>>((ref) {
@@ -103,6 +109,20 @@ class TodoProvider {
       await batch.commit(); // Execute all deletions at once
     } catch (e) {
       print('Error clearing completed todos: $e');
+    }
+  }
+
+  // current user
+  Future<void> currentUserProvider(WidgetRef ref) async {
+    final user = _firestore
+        .collection('users')
+        .doc(FirebaseAuth.instance.currentUser?.uid);
+    final userData = await user.get();
+    if (userData.exists) {
+      ref.read(emailProvider.notifier).state =
+          userData.data()?['email'] ?? 'Guest';
+    } else {
+      ref.read(emailProvider.notifier).state = 'Guest';
     }
   }
 

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../screens/todo_screen.dart';
 
 final emailProvider = StateProvider<String>((ref) => '');
@@ -19,13 +21,62 @@ class SignInScreen extends ConsumerWidget {
         email: ref.read(emailProvider).trim(),
         password: ref.read(passwordProvider),
       );
-      // redirect to the todo screen after successful sign-in
       Navigator.pushReplacement(
         ref.context,
         MaterialPageRoute(builder: (context) => const TodoScreen()),
       );
     } on FirebaseAuthException catch (e) {
       ref.read(errorProvider.notifier).state = e.message;
+    } finally {
+      ref.read(isLoadingProvider.notifier).state = false;
+    }
+  }
+
+  Future<void> _signInWithGoogle(WidgetRef ref) async {
+    ref.read(isLoadingProvider.notifier).state = true;
+    ref.read(errorProvider.notifier).state = null;
+
+    try {
+      final GoogleAuthProvider googleProvider = GoogleAuthProvider();
+      await FirebaseAuth.instance.signInWithPopup(googleProvider);
+      // find the current user and update email provider
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        ref.read(emailProvider.notifier).state = user.email ?? 'Guest';
+      } else {
+        ref.read(emailProvider.notifier).state = 'Guest';
+      }
+      Navigator.pushReplacement(
+        ref.context,
+        MaterialPageRoute(builder: (context) => const TodoScreen()),
+      );
+    } catch (e) {
+      ref.read(errorProvider.notifier).state = 'Google sign-in failed: $e';
+    } finally {
+      ref.read(isLoadingProvider.notifier).state = false;
+    }
+  }
+
+  Future<void> _signInWithFacebook(WidgetRef ref) async {
+    ref.read(isLoadingProvider.notifier).state = true;
+    ref.read(errorProvider.notifier).state = null;
+    try {
+      final LoginResult result = await FacebookAuth.instance.login();
+      if (result.status == LoginStatus.success) {
+        final OAuthCredential credential = FacebookAuthProvider.credential(
+          result.accessToken!.tokenString,
+        );
+        await FirebaseAuth.instance.signInWithCredential(credential);
+        Navigator.pushReplacement(
+          ref.context,
+          MaterialPageRoute(builder: (context) => const TodoScreen()),
+        );
+      } else {
+        ref.read(errorProvider.notifier).state =
+            result.message ?? 'Facebook sign-in failed';
+      }
+    } catch (e) {
+      ref.read(errorProvider.notifier).state = 'Facebook sign-in failed: $e';
     } finally {
       ref.read(isLoadingProvider.notifier).state = false;
     }
@@ -38,8 +89,7 @@ class SignInScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Sign In')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -72,6 +122,37 @@ class SignInScreen extends ConsumerWidget {
                 child: isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
                     : const Text('Sign In'),
+              ),
+            ),
+            // Sign in with Google button
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: isLoading ? null : () => _signInWithGoogle(ref),
+              child: isLoading
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : const Text('Sign In with Google'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.indigo,
+                foregroundColor: Colors.deepOrangeAccent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                  //
+                ),
+              ),
+            ),
+            // Sign in with Facebook button
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: isLoading ? null : () => _signInWithFacebook(ref),
+              child: isLoading
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : const Text('Sign In with Facebook'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
               ),
             ),
           ],

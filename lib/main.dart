@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'screens/todo_screen.dart';
 import 'auth/signin_screen.dart';
+import 'auth/signup_screen.dart';
 
 void main() async {
   // Make sure Flutter is ready before we do anything
@@ -24,7 +25,7 @@ class MyTodoApp extends ConsumerWidget {
     return MaterialApp(
       title: 'Todos App',
       theme: ThemeData(primarySwatch: Colors.deepPurple),
-      home: SignInScreen(),
+      home: SignUpScreen(),
       debugShowCheckedModeBanner: false,
     );
   }
