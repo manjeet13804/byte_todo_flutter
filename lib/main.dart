@@ -25,7 +25,7 @@ class MyTodoApp extends ConsumerWidget {
     return MaterialApp(
       title: 'Todos App',
       theme: ThemeData(primarySwatch: Colors.deepPurple),
-      home: SignUpScreen(),
+      home: SignInScreen(),
       debugShowCheckedModeBanner: false,
     );
   }

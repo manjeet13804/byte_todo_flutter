@@ -59,6 +59,16 @@ class AuthService {
     }
   }
 
+  Future<User?> signUpWithGoogle() async {
+    try {
+      final GoogleAuthProvider googleProvider = GoogleAuthProvider();
+      await FirebaseAuth.instance.signInWithPopup(googleProvider);
+    } catch (e) {
+      log("Google sign-up failed: $e");
+    }
+    return null;
+  }
+
   Future<User?> signInWithGoogle() async {
     try {
       final GoogleAuthProvider googleProvider = GoogleAuthProvider();

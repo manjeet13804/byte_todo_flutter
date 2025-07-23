@@ -4,6 +4,7 @@ import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../screens/todo_screen.dart';
+import 'signup_screen.dart';
 
 final emailProvider = StateProvider<String>((ref) => '');
 final passwordProvider = StateProvider<String>((ref) => '');
@@ -41,11 +42,7 @@ class SignInScreen extends ConsumerWidget {
       await FirebaseAuth.instance.signInWithPopup(googleProvider);
       // find the current user and update email provider
       final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        ref.read(emailProvider.notifier).state = user.email ?? 'Guest';
-      } else {
-        ref.read(emailProvider.notifier).state = 'Guest';
-      }
+      ref.read(emailProvider.notifier).state = user?.email ?? 'Guest';
       Navigator.pushReplacement(
         ref.context,
         MaterialPageRoute(builder: (context) => const TodoScreen()),
@@ -60,21 +57,19 @@ class SignInScreen extends ConsumerWidget {
   Future<void> _signInWithFacebook(WidgetRef ref) async {
     ref.read(isLoadingProvider.notifier).state = true;
     ref.read(errorProvider.notifier).state = null;
+
     try {
-      final LoginResult result = await FacebookAuth.instance.login();
-      if (result.status == LoginStatus.success) {
-        final OAuthCredential credential = FacebookAuthProvider.credential(
-          result.accessToken!.tokenString,
-        );
-        await FirebaseAuth.instance.signInWithCredential(credential);
-        Navigator.pushReplacement(
-          ref.context,
-          MaterialPageRoute(builder: (context) => const TodoScreen()),
-        );
-      } else {
-        ref.read(errorProvider.notifier).state =
-            result.message ?? 'Facebook sign-in failed';
-      }
+      final facebookProvider = FacebookAuthProvider();
+      final userCredential = await FirebaseAuth.instance.signInWithPopup(
+        facebookProvider,
+      );
+      final email = userCredential.user?.email ?? 'Guest';
+      ref.read(emailProvider.notifier).state = email;
+
+      Navigator.pushReplacement(
+        ref.context,
+        MaterialPageRoute(builder: (context) => const TodoScreen()),
+      );
     } catch (e) {
       ref.read(errorProvider.notifier).state = 'Facebook sign-in failed: $e';
     } finally {
@@ -154,6 +149,17 @@ class SignInScreen extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(30),
                 ),
               ),
+            ),
+            // Sign up button
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SignUpScreen()),
+                );
+              },
+              child: const Text('Don\'t have an account? Sign Up'),
             ),
           ],
         ),

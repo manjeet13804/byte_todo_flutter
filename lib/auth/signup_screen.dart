@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../screens/todo_screen.dart';
 import 'auth_service.dart';
+import 'signin_screen.dart';
 
 final emailProvider = StateProvider<String>((ref) => '');
 final passwordProvider = StateProvider<String>((ref) => '');
@@ -41,15 +42,17 @@ class SignUpScreen extends ConsumerWidget {
     ref.read(isLoadingProvider.notifier).state = true;
     ref.read(errorProvider.notifier).state = null;
     try {
-      final user = await AuthService().signInWithGoogle();
-      if (user != null) {
-        Navigator.pushReplacement(
-          ref.context,
-          MaterialPageRoute(builder: (context) => const TodoScreen()),
-        );
-      }
+      final GoogleAuthProvider googleProvider = GoogleAuthProvider();
+      await FirebaseAuth.instance.signInWithPopup(googleProvider);
+      // find the current user and update email provider
+      final user = FirebaseAuth.instance.currentUser;
+      ref.read(emailProvider.notifier).state = user?.email ?? 'Guest';
+      Navigator.pushReplacement(
+        ref.context,
+        MaterialPageRoute(builder: (context) => const TodoScreen()),
+      );
     } catch (e) {
-      ref.read(errorProvider.notifier).state = 'Google sign-in failed: $e';
+      ref.read(errorProvider.notifier).state = 'Google sign-up failed: $e';
     } finally {
       ref.read(isLoadingProvider.notifier).state = false;
     }
@@ -140,6 +143,28 @@ class SignUpScreen extends ConsumerWidget {
                   : const Text('Sign Up with Facebook'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+              ),
+            ),
+            // Sign in button
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: isLoading
+                  ? null
+                  : () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const SignInScreen(),
+                        ),
+                      );
+                    },
+              child: const Text('Already have an account? Sign In'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.grey,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
